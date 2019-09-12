@@ -1,0 +1,51 @@
+service: demo-cdn
+
+# https://github.com/laardee/serverless-lambda-at-edge/blob/master/serverless.yml
+# https://serverless.com/framework/docs/providers/aws/events/cloudfront/
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+  region: us-east-1
+
+package:
+  individually: true
+  exclude:
+    - docker/**
+    - lambda-npm-install.sh
+    - package.json
+    - package-lock.json
+
+functions:
+  viewerRequest:
+    handler: src/viewerRequest/index.handler
+    events:
+      - cloudFront:
+          eventType: viewer-request
+          origin: s3://demo-cdn-bucket.s3.amazonaws.com/
+    package:
+      exclude:
+        - src/originResponse/**
+        - node_modules/**
+
+  originResponse:
+    handler: src/originResponse/index.handler
+    events:
+      - cloudFront:
+          eventType: origin-response
+          origin: s3://demo-cdn-bucket.s3.amazonaws.com/
+    package:
+      exclude:
+        - src/viewerRequest/**
+
+resources:
+  Resources:
+    Bucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: demo-cdn-bucket
+    CloudFrontDistribution:
+      Type: AWS::CloudFront::Distribution
+      Properties:
+        DistributionConfig:
+          PriceClass: PriceClass_100
