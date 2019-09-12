@@ -46,6 +46,3 @@ resources:
         BucketName: demo-cdn-bucket
     CloudFrontDistribution:
       Type: AWS::CloudFront::Distribution
-      Properties:
-        DistributionConfig:
-          PriceClass: PriceClass_100
