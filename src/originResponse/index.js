@@ -6,15 +6,23 @@ const s3 = new AWS.S3({
 });
 const Sharp = require("sharp");
 
-const BUCKET = "takeoffgo-jambo";
+const BUCKET = "demo-cdn-bucket";
 
 const errorResponse = (message, response, callback) => {
   response.status = 500;
+  response.headers["content-type"] = [
+    { key: "Content-Type", value: "text/html" }
+  ];
   response.body = `<!DOCTYPE html>
   <html>
   <body>
     <h1>Something went wrong</h1>
-    <pre>${message}</pre>
+    <pre>${message
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;")}</pre>
   </body>
   </html>`;
   callback(null, response);
@@ -56,7 +64,7 @@ exports.handler = async (event, context, callback) => {
 
     try {
       const obj = await s3.getObject({ Bucket: BUCKET, Key: key }).promise();
-      
+
       // disabling this for now, a lot of images are tagged as text/plain
       // const mimeParts = (obj.ContentType || "").split("/");
       // if (mimeParts[0] !== "image") {
@@ -80,7 +88,7 @@ exports.handler = async (event, context, callback) => {
         .putObject({
           Body: buffer,
           Bucket: BUCKET,
-          ContentType: "image/" + format,
+          ContentType: `image/${format}`,
           CacheControl: "max-age=31536000",
           Key: uri.replace(/^\/+/, ""),
           StorageClass: "STANDARD"
@@ -91,11 +99,15 @@ exports.handler = async (event, context, callback) => {
       response.body = buffer.toString("base64");
       response.bodyEncoding = "base64";
       response.headers["content-type"] = [
-        { key: "Content-Type", value: "image/" + format }
+        { key: "Content-Type", value: `image/${format}` }
       ];
       callback(null, response);
     } catch (ex) {
-      return errorResponse(JSON.stringify(ex, null, 2), response, callback);
+      return errorResponse(
+        JSON.stringify({ ex, stack: ex.stack }, null, 2),
+        response,
+        callback
+      );
     }
   } else {
     callback(null, response);

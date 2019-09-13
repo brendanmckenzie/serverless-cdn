@@ -46,3 +46,6 @@ resources:
         BucketName: demo-cdn-bucket
     CloudFrontDistribution:
       Type: AWS::CloudFront::Distribution
+
+# TODO: CloudFront Origin Access Identity
+# GetObject/PutObject IAM role for `originResponse` to S3 bucket
